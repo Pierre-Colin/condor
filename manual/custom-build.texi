@@ -1,0 +1,41 @@
+For all kinds of reasons, you may want to add to the behavior of
+@command{make}.
+
+With GNU @command{make}, you can use @samp{make -j4} to parallelize the
+building process and make it faster.
+
+You can customize compilation flags by defining the @code{CFLAGS} variable
+upon running @command{make} using a syntax like @samp{make "CFLAGS=-Og -g"}.
+Compilation flags we recommend include:
+@itemize
+@item
+@samp{-std=c89}, or any of @samp{c95}, @samp{c99}, @samp{c11} or @samp{c17} to
+choose which version of C to compile in (they should all work, but later C
+versions give the compiler more information to analyze and optimize the code
+with);
+
+@item
+@samp{-D_POSIX_C_SOURCE=1}, or any integer value greater than one to enable
+use of @code{errno} values that are defined by POSIX but not in ISO C;
+
+@item
+@samp{-O3 -flto} to fully optimize the code;
+
+@item
+@samp{-Og -g -fanalyzer} for debugging symbols and to enable the GCC static
+analyzer;
+
+@item
+@samp{-pedantic -Wall -Wextra -Wconversion -Wshadow} for GCC warnings we rely
+on when developing the library:
+@itemize
+@item
+this is irrelevant for end users,
+
+@item
+GCC complains when using @samp{-std=c89} because @code{unsigned long long} is
+not standard in C89, but we choose to ignore this warning.
+@end itemize
+@end itemize
+Alternatively, you can simply edit the @file{Makefile} to set @code{CFLAGS} to
+your preferred value.

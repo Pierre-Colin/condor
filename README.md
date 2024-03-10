@@ -23,10 +23,21 @@ tinkering is needed. To run the tests:
 LD_LIBRARY_PATH=$(pwd):$LD_LIBRARY_PATH ./test
 ```
 
+To build the manual, use any of the following depending on what format you want
+it in. You will need [GNU Texinfo](https://www.gnu.org/software/texinfo/).
+```bash
+make info
+make dvi
+make html
+make ps
+make pdf
+```
+
 Usage
 -----
 
-The whole C API is documented in the manual page `condor.h.3`.
+The whole C API is documented in the manual page `condor.h.3` as well as in the
+manual.
 
 Current state
 -------------
@@ -36,8 +47,15 @@ function, the other ones being relatively trivial. The C++ header appears to
 be functional, but more tests are needed. In the future, it will be merged with
 the C header. A Python 3 package is in development for an upcoming demo.
 
+The Condor manual contains basic install instructions as well as the reference.
+However, it lacks a long chapter setting forth the motivations and the
+underlying theory.
+
 License
 -------
 
 Condor and its dependency lpsolve 5.5 are both released under the GNU
 [LGPLv3](https://www.gnu.org/licenses/licenses.html#LGPL).
+
+The Condor manual is released under the GNU
+[FDLv1.3+](https://www.gnu.org/licenses/licenses.html#FDL).

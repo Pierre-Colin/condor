@@ -1,0 +1,35 @@
+Including @code{condor.h} makes visible the type @code{size_t} as defined in
+the standard @code{<stddef.h>} header.
+
+In addition, Condor defines two C types.
+
+@deftp {Data Type} cdor_adv
+This unsigned integer type is intended to represent numbers of votes.
+
+To be more precise, it's defined as
+@itemize
+@item
+@code{unsigned long long} in C++11 and above, C99 and above or when the GNU C
+extentions are enabled;
+
+@item
+@code{unsigned long} otherwise.
+@end itemize
+
+It is unsafe to compile Condor in a setting where it is defined as one type and
+use it in a setting where it is defined as the other.
+@end deftp
+
+@deftp {Data Type} {struct cdor_strategy} type val
+This structure is returned by @code{cdor_optimal_strategy}.  It contains two
+data members:
+@itemize
+@item
+an enumerated member @code{type} to compare against the values
+@code{CDOR_ERROR}, @code{CDOR_PURE} and @code{CDOR_MIXED};
+
+@item
+a union member @code{val} itself having members @code{size_t pure} and
+@code{double *mixed}.
+@end itemize
+@end deftp

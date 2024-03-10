@@ -1,0 +1,12 @@
+Condor comes with a @file{Makefile} file.  Simply run @command{make} in the
+Condor directiory to build the library.
+
+If you have GNU @command{make}, GCC and any POSIX-conforming implementation of
+@command{ar}, everything should work out of the box.  Otherwise, you may have
+to adjust the content of the @file{Makefile}.  You also need to have lp_solve
+installed.
+
+Use @samp{make info} to compile the Condor manual.
+
+To test your build, run @samp{LD_LIBRARY_PATH=$(pwd):$LD_LIBRARY_PATH ./test}.
+A bit of a mouthful, but those tests may disappear in the future anyway.

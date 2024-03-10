@@ -1,0 +1,52 @@
+The @code{cdor_cast_ballot} function updates the advantage graph.
+
+@deftypefun void cdor_cast_ballot (size_t @var{n}, cdor_adv @var{g}[], int (*@var{b}) (size_t, size_t));
+
+Parameter @var{n} must be the number of alternatives in the election.
+Parameter @var{g} must point to an array of @code{@var{n} * @var{n}} integers
+of type @code{cdor_adv}.  Parameter @var{b} must be a pointer to a ballot function.
+
+The advantage graph is understood as follows.  For all integers @var{i} and
+@var{j}, @code{@var{g}[@var{i} * @var{n} + @var{j}]} contains the number of
+votes so far that rank alternative @var{i} as better than alternative @var{j}.
+When @code{@var{i} == @var{j}}, that number should be zero, but the
+@code{cdor_cast_ballot} function just ignores them.
+
+The function @var{b} points to must be reproducible as defined by C23.  In GNU
+C, any function compatible with @code{__attribute__((pure))} works.  In
+addition, it must have the following properties for all @var{i} and @var{j}:
+@itemize
+@item
+if @code{@var{b} (@var{i}, @var{j}) == 0}, then
+@code{@var{b} (@var{j}, @var{i}) == 0};
+
+@item
+if @code{@var{b} (@var{i}, @var{j}) > 0}, then
+@code{@var{b} (@var{j}, @var{i}) < 0}.
+@end itemize
+
+The @code{cdor_cast_ballot} function then uses the function @var{b} points to
+to update @var{g} to its state after casting the vote @var{b} represents.
+The semantics of @var{b} are similar to C library comparison functions like
+@code{strcmp}.
+@itemize
+@item
+@code{@var{b} (@var{i}, @var{j}) > 0} means that the elector prefers @var{i}
+over @var{j}.
+
+@item
+@code{@var{b} (@var{i}, @var{j}) < 0} means that the elector prefers @var{j}
+over @var{i}.
+
+@item
+@code{@var{b} (@var{i}, @var{j}) == 0} means that the elector has no preference
+between @var{i} and @var{j}.
+@end itemize
+
+The thread, async-signal and async-cancel safety properties of the
+@code{cdor_cast_ballot} function are the same as those of the function pointed
+to by @var{b}.
+
+In particular, if @var{b} performs recursive calls to @code{cdor_cast_ballot},
+then the programmer must ensure that @var{b} is reentrant.
+@end deftypefun

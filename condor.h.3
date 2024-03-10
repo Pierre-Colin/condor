@@ -1,0 +1,273 @@
+.TH Condor 3 libcondor
+.SH NAME
+condor.h - C implementation of the Randomized Condorcet Voting System
+.SH SYNOPSIS
+.nf
+#include "condor.h"
+
+void cdor_cast_ballot (size_t \fIn\fP, uintmax_t \fIduels\fP[n * n], int (*\fIballot\fP) (size_t, size_t));
+void cdor_make_duel_graph (size_t \fIn\fP, char \fIgraph\fP[n * n], const uintmax_t \fIduels\fP[n * n]);
+CondorStrategy cdor_optimal_strategy (size_t \fIn\fP, const char \fIgraph\fP[n * n]);
+.fi
+.SH DESCRIPTION
+The
+.B cdor_cast_ballot
+function casts a ballot specified by
+.I ballot
+in an election among
+.I n
+alternatives. The function parameter
+.I ballot
+must take two alternative indices between 0 inclusive and
+.I n
+exclusive and return:
+.IP \(bu 2
+a negative number if the elector prefers
+.I i
+over
+.IR j ;
+.IP \(bu 2
+a positive number if the elector prefers
+.I j
+over
+.IR i ;
+.IP \(bu 2
+zero if the elector has no preference between
+.I i
+and
+.IR j .
+.P
+The
+.B cdor_cast_ballot
+function preserves the invariant that for all
+.I i
+and
+.IR j ,
+the value of
+.IR duels [ i * n
++
+.IR j ]
+is the number of electors who prefer
+.I i
+over
+.IR j .
+The return value of
+.I ballot
+when both arguments are equal does not matter and is always assumed to be zero.
+It is also assumed that for all
+.I i
+and
+.IR j ,
+.IR ballot " (" i ,
+.IR j )
+and
+.IR ballot " (" j ,
+.IR i )
+have opposite signs. It is recommended practice to make
+.I ballot
+a strict preorder among the integers between 0 inclusive and
+.I n
+exclusive. Since the
+.B cdor_cast_ballot
+function only preserves the invariant, it is up to the user to initialize the
+duel matrix with zeros.
+
+.P
+The
+.B cdor_make_duel_graph
+function converts a duel matrix as constructed by
+.B cdor_cast_ballot
+into a duel graph in an electon among
+.I n
+alternatives. The argument
+.I duels
+is the duel matrix as constructed by
+.BR cdor_cast_ballot .
+After the function returns, for all
+.I i
+and
+.I j
+between 0 and
+.I n
+\- 1,
+.IR graph [ i * n
++
+.IR j ]
+is set to 1 if more electors preferred
+.I i
+over
+.I j
+than there were electors who preferred
+.I j
+over
+.IR i ,
+and 0 otherwise.
+
+.P
+The
+.B cdor_optimal_strategy
+function computes the optimal strategy to choose the winner from given the
+number of alternatives
+.I n
+and the duel graph
+.I graph
+as constructed by the
+.B cdor_make_duel_graph
+function.
+
+.SH RETURN VALUE
+The return value
+.I r
+of
+.B cdor_optimal_strategy
+is a tagged union with the following post-condition:
+.ad l
+.nh
+.TS
+allbox;
+lb lb lbx
+l l l.
+T{
+Value of
+.IR r .type
+T}	Meaning	T{
+Content of
+.IR r .val
+T}
+T{
+.B CDOR_ERROR
+T}	An error occured while computing a mixed strategy	Unspecified.
+T{
+.B CDOR_PURE
+T}	There is a unique Condorcet winner	T{
+.IR r .val.pure
+contains the index of the Condorcet winner as an object of type
+.BR size_t .
+T}
+T{
+.B CDOR_MIXED
+T}	Either there is no Condorcet winner or there are several	T{
+.IR r .val.mixed
+points to a dynamically-allocated array of
+.BR double s
+of size
+.I n
+such that
+.IR r .val.mixed[ i ]
+contains the probability that alternative
+.I i
+should be elected; this array can be freed with a call to
+.BR free (3).
+T}
+.TE
+.ny
+.ad
+
+.SH ATTRIBUTES
+For an explanation of the terms used in this section, see
+.BR attributes (7).
+.ad l
+.nh
+.TS
+allbox;
+lbx lb lb
+l l l.
+Interface	Attribute	Value
+T{
+.BR cdor_cast_ballot (),
+.BR cdor_make_duel_graph ()
+T}	Thread safety	MT-Safe race
+T{
+.BR cdor_optimal_strategy ()
+T}	Thread safety	MT-Unsafe
+.TE
+.hy
+.ad
+
+.SH EXAMPLE
+The following example illustrates how to use all Condor functions in a C
+program.
+
+.PP
+.in +4n
+.EX
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "condor.h"
+
+#define NALT 10
+
+typedef struct { uintmax_t low, high; } PreorderBallot;
+
+static PreorderBallot ballot[NALT];
+
+static void set_ballot (const PreorderBallot b[NALT])
+{
+        memcpy (ballot, b, sizeof ballot);
+}
+
+static int cast_routine (const size_t i, const size_t j)
+{
+        if (ballot[i].high < ballot[j].low)
+                return \-1;
+        return ballot[i].low > ballot[j].high;
+}
+
+void cast (uintmax_t duels[NALT * NALT], const PreorderBallot b[NALT])
+{
+        set_ballot (b);
+        cdor_cast_ballot (NALT, duels, cast_routine);
+}
+
+size_t play (const double strat[NALT])
+{
+        double roll = (double) rand () / RAND_MAX;
+        for (size_t i = 0; i < NALT; i++) {
+                if (roll < strat[i])
+                        return i;
+                roll \-= strat[i];
+        }
+        return NALT \- 1;
+}
+
+int main (void)
+{
+        PreorderBallot b[NALT];
+        uintmax_t duels[NALT * NALT];
+        while (/* election not over */) {
+                /* fill b with pre-order data */
+                cast (duels, b);
+        }
+        bool graph[NALT * NALT];
+        cdor_make_duel_graph (NALT, graph, duels);
+        srand (/* seed */);
+        const CondorStrategy strat = cdor_optimal_strategy (NALT, graph);
+        switch (strat.type) {
+        case CDOR_ERROR:
+                fputs ("An error occured\\n", stderr);
+                exit (EXIT_FAILURE);
+        case CDOR_PURE:
+                printf ("%zu is the Condorcet winner\\n", strat.val.pure);
+                break;
+        case CDOR_MIXED:
+                printf ("%zu wins by mixed strategy\\n", play (strat.val.mixed));
+                free (strat.val.mixed);
+        }
+        exit (EXIT_SUCCESS);
+}
+.EE
+.in
+.PP
+
+.SH CURRENT IMPLEMENTATION
+The current implementation uses the library
+.BR lpsolve ,
+version 5.5. Therefore, it is necessary to link the program against
+.BR liblpsolve55 .
+It is documented that
+.BR lpsolve
+\*(lqshould be\*(rq thread safe in its change log, but this is not trusted to
+make the Condor API thread safe. This decision also allows to change the linear
+programming solver if needed in the future without weakening the Condor API.

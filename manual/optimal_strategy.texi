@@ -1,0 +1,74 @@
+The @code{cdor_optimal_strategy} function computes the optimal strategy for a
+given duel graph.
+
+@deftypefun {struct cdor_strategy} cdor_optimal_strategy (size_t @var{n}, const char @var{g}[])
+
+Parameter @var{n} must be the number of alternatives in the election.
+Parameter @var{g} must point to a duel graph like those the
+@code{cdor_make_duel_graph} computes.  In particular, the buffer @var{g}
+points to must have size @code{@var{n} * @var{n}} and have the following
+properties for all @var{i} ad @var{j}:
+@itemize
+@item
+@code{@var{g}[@var{i} * @var{n} + @var{j}] == 0} or
+@code{@var{g}[@var{i} * @var{n} + @var{j}] == 1};
+
+@item
+@code{@var{g}[@var{i} * @var{n} + @var{i}] == 0};
+
+@item
+if @code{@var{g}[@var{i} * @var{n} + @var{j}] == 1}, then
+@code{@var{g}[@var{j} * @var{n} + @var{i}] == 0}.
+@end itemize
+
+Let @var{r} be the object returned by a call to @code{cdor_optimal_strategy}.
+If an error occurs in the computing of the strategy, then
+@code{@var{r}.type == CDOR_ERROR}, and @code{@var{r}.val} has indeterminate
+value.  In addition, if Condor was built with POSIX support, then @code{errno}
+is set to
+@itemize
+@item
+@code{EINVAL} if @var{n} is too big;
+
+@item
+@code{EDOM} if the linear solver found a solution, but it lies outside the
+constraits set;
+
+@item
+@code{ENOMEM} if the program ran out of memory.
+@end itemize
+
+If the graph @var{g} has exactly one source, then
+@code{@var{r}.type == CDOR_PURE} and @code{@var{r}.val.pure} equals the number
+of the source.  It's the Condorcet winner.
+
+If the graph @var{g} has zero or more than one source, then
+@code{@var{r}.type == CDOR_MIXED} and @code{@var{r}.val.mixed} points to a
+dynamically-allocated array of @var{n} objects of type @code{double}
+representing the optimal mixed strategy.  It's the probability distribution to
+use when randomly picking the winner.
+
+Because @code{cdor_optimal_strategy} relies on lpsolve which is poorly
+documented, it should be assumed to be thread unsafe, although this is not
+proven.  In addition, it is async-signal unsafe and async-cancel unsafe for
+sure since it dynamically allocates data.
+
+The following code shows a typical usage of @code{cdor_optimal_strategy} when
+POSIX support is enabled.
+
+@smallexample
+const struct cdor_strategy r = cdor_optimal_strategy (n, g);
+switch (r.type) @{
+case CDOR_PURE:
+	/* r.val.pure wins */
+	break;
+case CDOR_MIXED:
+	/* Random alternative from distribution r.val.mixed wins */
+	free (r.val.mixed);
+	break;
+case CDOR_ERROR:
+	perror ("Could not determine the winner");
+	abort ();
+@}
+@end smallexample
+@end deftypefun

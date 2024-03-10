@@ -1,0 +1,36 @@
+The @code{cdor_make_duel_graph} function reduces the advantage graph into a
+duel graph.
+
+@deftypefun void cdor_make_duel_graph (size_t @var{n}, char @var{g}[], const cdor_adv @var{a}[])
+
+Parameter @var{n} must be the number of alternatives in the election.
+Parameter @var{g} must point to a buffer of @code{@var{n} * @var{n}} bytes.
+Parameter @var{a} must point to an array of @code{@var{n} * @var{n}} objects of
+type @code{cdor_adv}.  If the buffers @var{g} and @var{a} point to overlap, the
+behavior is undefined.
+
+The array @var{a} points to must be an advantage graph like those the
+@code{cdor_cast_ballot} function helps update.  Its diagonal elements should
+be zeros, but the @code{cdor_make_duel_graph} function just ignores them.
+
+The initial state of @var{g} doesn't matter.  When @code{cdor_make_duel_graph}
+returns, the following hold for all @var{i} and @var{j}.
+@itemize
+@item
+If @code{@var{i} == @var{j}} or
+@code{@var{g}[@var{i} * @var{n} + @var{j}]
+== @var{g}[@var{j} * @var{n} + @var{i}]}, then
+@code{@var{g}[@var{i} * @var{n} + @var{j}] == 0}.
+
+@item
+If @code{@var{g}[@var{i} * @var{n} + @var{j}] > 0}, then
+@code{@var{a}[@var{i} * @var{n} + @var{j}] == 1}.
+
+@item
+If @code{@var{g}[@var{i} * @var{n} + @var{j}] < 0}, then
+@code{@var{a}[@var{j} * @var{n} + @var{i}] == 1}.
+@end itemize
+
+The @code{cdor_make_duel_graph} function is unsequenced as defined by C23.  In
+addition, it's thread safe, async-signal safe and async-cancel safe.
+@end deftypefun
