@@ -5,11 +5,34 @@ condor.h - C implementation of the Randomized Condorcet Voting System
 .nf
 #include "condor.h"
 
-void cdor_cast_ballot (size_t \fIn\fP, uintmax_t \fIduels\fP[n * n], int (*\fIballot\fP) (size_t, size_t));
-void cdor_make_duel_graph (size_t \fIn\fP, char \fIgraph\fP[n * n], const uintmax_t \fIduels\fP[n * n]);
-CondorStrategy cdor_optimal_strategy (size_t \fIn\fP, const char \fIgraph\fP[n * n]);
+void cdor_cast_ballot (size_t \fIn\fP, cdor_adv \fIduels\fP[n * n], int (*\fIballot\fP) (size_t, size_t));
+void cdor_make_duel_graph (size_t \fIn\fP, char \fIgraph\fP[n * n], const cdor_adv \fIduels\fP[n * n]);
+struct cdor_strategy cdor_optimal_strategy (size_t \fIn\fP, const char \fIgraph\fP[n * n]);
 .fi
 .SH DESCRIPTION
+The
+.B cdor_adv
+type is an unsigned integer type intended to contain a number of electors
+having stated they prefer one alternative over another.  It is defined as:
+.IP \(bu 2
+.B unsigned long long
+in C++11 or above, in C99 or above or when GNU C extensions are enabled;
+.IP \(bu 2
+.B unsigned long
+otherwise.
+.P
+It is not safe to compile and use the Condor library with different underlying
+types for
+.BR cdor_adv .
+
+.P
+The
+.B cdor_strategy
+structure is a tagged union to contain the result of a call to the
+.B cdor_optimal_strategy
+function.  See below for further information.
+
+.P
 The
 .B cdor_cast_ballot
 function casts a ballot specified by
@@ -36,6 +59,7 @@ zero if the elector has no preference between
 .I i
 and
 .IR j .
+
 .P
 The
 .B cdor_cast_ballot
@@ -67,7 +91,10 @@ have opposite signs. It is recommended practice to make
 .I ballot
 a strict preorder among the integers between 0 inclusive and
 .I n
-exclusive. Since the
+exclusive, and is necessary that it be reproducible as defined by C23 (in GNU
+C, any function compatible with
+.B __attribute__((pure))
+works).  Since the
 .B cdor_cast_ballot
 function only preserves the invariant, it is up to the user to initialize the
 duel matrix with zeros.
@@ -162,6 +189,18 @@ T}
 .TE
 .ny
 .ad
+If an error occurred and POSIX support is enabled,
+.B errno
+is set to:
+.IP \(bu 2
+.B EINVAL
+if the number of alternatives is beyond what the implementation supports;
+.IP \(bu 2
+.B EDOM
+if the mixed strategy found do not satisfy the constraints;
+.IP \(bu 2
+.B ENOMEM
+if the program ran out of memory.
 
 .SH ATTRIBUTES
 For an explanation of the terms used in this section, see
@@ -176,7 +215,7 @@ Interface	Attribute	Value
 T{
 .BR cdor_cast_ballot (),
 .BR cdor_make_duel_graph ()
-T}	Thread safety	MT-Safe race
+T}	Thread safety	MT-Safe
 T{
 .BR cdor_optimal_strategy ()
 T}	Thread safety	MT-Unsafe
@@ -235,7 +274,7 @@ size_t play (const double strat[NALT])
 int main (void)
 {
         PreorderBallot b[NALT];
-        uintmax_t duels[NALT * NALT];
+        uintmax_t duels[NALT * NALT] = {0};
         while (/* election not over */) {
                 /* fill b with pre-order data */
                 cast (duels, b);
@@ -243,7 +282,7 @@ int main (void)
         bool graph[NALT * NALT];
         cdor_make_duel_graph (NALT, graph, duels);
         srand (/* seed */);
-        const CondorStrategy strat = cdor_optimal_strategy (NALT, graph);
+        const struct cdor_strategy strat = cdor_optimal_strategy (NALT, graph);
         switch (strat.type) {
         case CDOR_ERROR:
                 fputs ("An error occured\\n", stderr);
